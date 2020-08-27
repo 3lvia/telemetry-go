@@ -1,0 +1,9 @@
+launch.json
+debug
+.idea
+*.bat
+/CI/vault-test.yaml
+/CI/vault-dev.yaml
+/envvars
+/token
+google_creds_*
