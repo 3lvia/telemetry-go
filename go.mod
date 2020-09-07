@@ -5,4 +5,5 @@ go 1.13
 require (
 	github.com/3lvia/hn-config-lib-go v1.2.1
 	github.com/microsoft/ApplicationInsights-Go v0.4.3
+	github.com/prometheus/client_golang v1.7.1
 )
