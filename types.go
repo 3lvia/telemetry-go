@@ -1,13 +1,24 @@
 package telemetry
 
+import "strings"
+
 // LogChans a set of channels used for communicating events, metrics, errors and
 // other telemetry types to the logger.
 type LogChans struct {
-	MetricChan   chan Metric
-	GaugeChan    chan Metric
-	ErrorChan    chan error
-	EventChan    chan Event
-	DebugChan    chan string
+	// CountChan increases the named Prometheus counter.
+	CountChan chan Metric
+
+	// GaugeChan increases the named Prometheus gauge.
+	GaugeChan chan Metric
+
+	// ErrorChan sends the error to Application Insights.
+	ErrorChan chan error
+
+	// EventChan sends the event to Application Insights.
+	EventChan chan Event
+
+	// DebugChan prints a debug message to the console.
+	DebugChan chan string
 	//FlushSigChan chan struct{}
 }
 
@@ -15,6 +26,11 @@ type LogChans struct {
 type Metric struct {
 	Name  string
 	Value float64
+}
+
+func (m Metric) toPromoMetricName() string {
+	ss := strings.ReplaceAll(m.Name, " ", "_")
+	return strings.ToLower(ss)
 }
 
 // Event is raised when something interesting happens in the application. Consists
