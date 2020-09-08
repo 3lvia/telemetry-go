@@ -13,16 +13,17 @@ import (
 
 // Start starts the logger in a go routine and returns a set of channels
 // that can be used to send telemetry to the logger.
-func Start(ctx context.Context, systemName, appName, appInsightsSecretPath string, v vault.SecretsManager) LogChans {
+func Start(ctx context.Context, options Options, v vault.SecretsManager) LogChans {
 	l := &logger{
 		logInfo: map[string]string{
-			"system": systemName,
-			"app": appName,
+			"system": options.SystemName,
+			"app":    options.AppName,
 		},
-		appInsightsSecretPath: appInsightsSecretPath,
-		mux:                   &sync.Mutex{},
-		promoGauges:           map[string]prometheus.Gauge{},
-		promoCounters:         map[string]prometheus.Counter{},
+		appInsightsSecretPath:    options.AppInsightsSecretPath,
+		mux:                      &sync.Mutex{},
+		promoGauges:              map[string]prometheus.Gauge{},
+		promoCounters:            map[string]prometheus.Counter{},
+		sendMetricsToAppInsights: options.SendMetricsToAppInsights,
 	}
 	vault.RegisterDynamicSecretDependency(l, v, nil)
 	lg := l.getLogChannels()
@@ -31,17 +32,18 @@ func Start(ctx context.Context, systemName, appName, appInsightsSecretPath strin
 }
 
 type logger struct {
-	logInfo               map[string]string
-	appInsightsSecretPath string
-	client                appinsights.TelemetryClient
-	gaugeChan             <-chan Metric
-	counterChan           <-chan Metric
-	errorChan             <-chan error
-	eventChan             <-chan Event
-	debugChan             <-chan string
-	mux                   *sync.Mutex
-	promoGauges           map[string]prometheus.Gauge
-	promoCounters         map[string]prometheus.Counter
+	logInfo                  map[string]string
+	appInsightsSecretPath    string
+	client                   appinsights.TelemetryClient
+	gaugeChan                <-chan Metric
+	counterChan              <-chan Metric
+	errorChan                <-chan error
+	eventChan                <-chan Event
+	debugChan                <-chan string
+	mux                      *sync.Mutex
+	promoGauges              map[string]prometheus.Gauge
+	promoCounters            map[string]prometheus.Counter
+	sendMetricsToAppInsights bool
 }
 
 func (l *logger) start(ctx context.Context) {
@@ -65,11 +67,19 @@ func (l *logger) start(ctx context.Context) {
 func (l *logger) handleCounter(m Metric) {
 	c := l.getCounter(m)
 	c.Add(m.Value)
+
+	if l.sendMetricsToAppInsights {
+		l.logMetric(m)
+	}
 }
 
 func (l *logger) handleGauge(m Metric) {
 	g := l.getGauge(m)
 	g.Set(m.Value)
+
+	if l.sendMetricsToAppInsights {
+		l.logMetric(m)
+	}
 }
 
 func (l *logger) getCounter(m Metric) prometheus.Counter {
@@ -121,6 +131,12 @@ func (l *logger) getGauge(m Metric) prometheus.Gauge {
 
 func (l *logger) flush() {
 	l.client.Channel().Flush()
+}
+
+func (l *logger) logMetric(m Metric) {
+	name := m.toPromoMetricName()
+	aiMetric := appinsights.NewMetricTelemetry(name, m.Value)
+	l.client.Track(aiMetric)
 }
 
 func (l *logger) logEvent(name string, data map[string]string)  {
