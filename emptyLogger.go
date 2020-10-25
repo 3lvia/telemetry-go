@@ -5,11 +5,12 @@ package telemetry
 // to provide support for testing scenarios when logging is not in focus.
 func StartEmpty() LogChans {
 	logChannels := LogChans{
-		CountChan: make(chan Metric),
-		GaugeChan: make(chan Metric),
-		ErrorChan: make(chan error),
-		EventChan: make(chan Event),
-		DebugChan: make(chan string),
+		CountChan:     make(chan Metric),
+		GaugeChan:     make(chan Metric),
+		ErrorChan:     make(chan error),
+		EventChan:     make(chan Event),
+		DebugChan:     make(chan string),
+		HistogramChan: make(chan Metric),
 	}
 
 	logger := &emptyLogger{logChannels: logChannels}
@@ -30,6 +31,7 @@ func (l *emptyLogger) start() {
 		case <-l.logChannels.ErrorChan:
 		case <-l.logChannels.EventChan:
 		case <-l.logChannels.DebugChan:
+		case <-l.logChannels.HistogramChan:
 		}
 	}
 }

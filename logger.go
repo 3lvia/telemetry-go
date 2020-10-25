@@ -23,6 +23,7 @@ func Start(ctx context.Context, options Options, v vault.SecretsManager) LogChan
 		mux:                      &sync.Mutex{},
 		promoGauges:              map[string]prometheus.Gauge{},
 		promoCounters:            map[string]prometheus.Counter{},
+		promoHistograms:          map[string]prometheus.Histogram{},
 		sendMetricsToAppInsights: options.SendMetricsToAppInsights,
 	}
 	vault.RegisterDynamicSecretDependency(l, v, nil)
@@ -37,22 +38,26 @@ type logger struct {
 	client                   appinsights.TelemetryClient
 	gaugeChan                <-chan Metric
 	counterChan              <-chan Metric
+	histogramChan            <-chan Metric
 	errorChan                <-chan error
 	eventChan                <-chan Event
 	debugChan                <-chan string
 	mux                      *sync.Mutex
 	promoGauges              map[string]prometheus.Gauge
 	promoCounters            map[string]prometheus.Counter
+	promoHistograms          map[string]prometheus.Histogram
 	sendMetricsToAppInsights bool
 }
 
 func (l *logger) start(ctx context.Context) {
 	for {
 		select {
-		case c := <- l.counterChan:
+		case c := <-l.counterChan:
 			l.handleCounter(c)
 		case g := <-l.gaugeChan:
 			l.handleGauge(g)
+		case h := <-l.histogramChan:
+			l.handleHistogram(h)
 		case err := <-l.errorChan:
 			l.error(err)
 		case e := <-l.eventChan:
@@ -80,6 +85,11 @@ func (l *logger) handleGauge(m Metric) {
 	if l.sendMetricsToAppInsights {
 		l.logMetric(m)
 	}
+}
+
+func (l *logger) handleHistogram(m Metric) {
+	h := l.getHistogram(m)
+	h.Observe(m.Value)
 }
 
 func (l *logger) getCounter(m Metric) prometheus.Counter {
@@ -129,6 +139,32 @@ func (l *logger) getGauge(m Metric) prometheus.Gauge {
 	return gauge
 }
 
+func (l *logger) getHistogram(m Metric) prometheus.Histogram {
+	name := m.toPromoMetricName()
+	if h, ok := l.promoHistograms[name]; ok {
+		return h
+	}
+
+	l.mux.Lock()
+	defer l.mux.Unlock()
+
+	if h, ok := l.promoHistograms[name]; ok {
+		return h
+	}
+
+	histogram := promauto.NewHistogram(prometheus.HistogramOpts{
+		//Namespace:   "",
+		//Subsystem:   "",
+		Name:        name,
+		Help:        m.Name,
+		ConstLabels: l.logInfo,
+		//Buckets:     nil,
+	})
+
+	l.promoHistograms[name] = histogram
+	return histogram
+}
+
 func (l *logger) flush() {
 	l.client.Channel().Flush()
 }
@@ -175,6 +211,7 @@ func (l *logger) StartSecretsListener(){}
 
 func (l *logger) getLogChannels() LogChans {
 	gaugeChan := make(chan Metric)
+	histogramChan := make(chan Metric)
 	errorChan := make(chan error)
 	eventChan := make(chan Event)
 	debugChan := make(chan string)
@@ -184,12 +221,13 @@ func (l *logger) getLogChannels() LogChans {
 	l.eventChan = eventChan
 	l.debugChan = debugChan
 	l.counterChan = counterChan
-
+	l.histogramChan = histogramChan
 	return LogChans{
-		GaugeChan:  gaugeChan,
-		ErrorChan:  errorChan,
-		EventChan:  eventChan,
-		DebugChan:  debugChan,
-		CountChan:  counterChan,
+		GaugeChan:     gaugeChan,
+		ErrorChan:     errorChan,
+		EventChan:     eventChan,
+		DebugChan:     debugChan,
+		CountChan:     counterChan,
+		HistogramChan: histogramChan,
 	}
 }

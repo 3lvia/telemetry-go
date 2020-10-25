@@ -11,6 +11,9 @@ type LogChans struct {
 	// GaugeChan increases the named Prometheus gauge.
 	GaugeChan chan Metric
 
+	// HistogramChan observes the named Prometheus histogram.
+	HistogramChan chan Metric
+
 	// ErrorChan sends the error to Application Insights.
 	ErrorChan chan error
 
@@ -44,7 +47,7 @@ type Options struct {
 	// SystemName the name of the containing system.
 	SystemName string
 
-	// The name of the running application/micro-service.
+	// AppName is the name of the running application/micro-service.
 	AppName string
 
 	// AppInsightsSecretPath the path to Application Insights instrumentation key in Vault.
