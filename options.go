@@ -11,6 +11,7 @@ type OptionsCollector struct {
 	appName                  string
 	appInsightsSecretPath    string
 	sendMetricsToAppInsights bool
+	empty                    bool
 	writer                   io.Writer
 }
 
@@ -44,8 +45,16 @@ func WithAppInsightsSecretPath(path string) Option {
 	}
 }
 
+// MuteApplicationInsights if used, logs won't be sent to application insights.
 func MuteApplicationInsights() Option {
 	return func(collector *OptionsCollector) {
 		collector.sendMetricsToAppInsights = false
+	}
+}
+
+// Empty if used logs will not be sent to application insights, and also not to Prometheues.
+func Empty() Option {
+	return func(collector *OptionsCollector) {
+		collector.empty = true
 	}
 }
