@@ -10,6 +10,11 @@ import (
 	"time"
 )
 
+const (
+	logTypeAppInsights = "AppInsights"
+	logTypeMetrics = "Metrics"
+)
+
 type sink interface {
 	logEvent(name string, data map[string]string)
 	error(err error)
@@ -40,7 +45,7 @@ func newSink(collector *OptionsCollector, v vault.SecretsManager) sink {
 		logInfo:                  logInfo,
 		writer:                   collector.writer,
 	}
-	if collector.sendMetricsToAppInsights && collector.appInsightsSecretPath != "" {
+	if !collector.empty && collector.appInsightsSecretPath != "" {
 		vault.RegisterDynamicSecretDependency(s, v, nil)
 	}
 
@@ -50,6 +55,7 @@ func newSink(collector *OptionsCollector, v vault.SecretsManager) sink {
 type standardSink struct {
 	appInsightsSecretPath    string
 	sendMetricsToAppInsights bool
+	capture                  EventCapture
 	client                   appinsights.TelemetryClient
 	logInfo                  map[string]string
 	m                        *metrics
@@ -72,6 +78,14 @@ func (s *standardSink) logEvent(name string, data map[string]string) {
 	if s.writer != nil {
 		s.writer.Write([]byte(fmt.Sprintf("EVENT(%s) %v\n", name, d)))
 	}
+	if s.capture != nil {
+		ce := &CapturedEvent{
+			SinkType: logTypeAppInsights,
+			Type:     "Event",
+			Event:    event,
+		}
+		s.capture.Capture(ce)
+	}
 }
 
 func (s *standardSink) error(err error) {
@@ -80,6 +94,14 @@ func (s *standardSink) error(err error) {
 	}
 	if s.writer != nil {
 		s.writer.Write([]byte(fmt.Sprintf("%v\n", err)))
+	}
+	if s.capture != nil {
+		ce := &CapturedEvent{
+			SinkType: logTypeAppInsights,
+			Type:     "Error",
+			Event:    err,
+		}
+		s.capture.Capture(ce)
 	}
 }
 
@@ -96,6 +118,15 @@ func (s *standardSink) handleCounter(m Metric) {
 	if s.sendMetricsToAppInsights {
 		s.logMetric(m)
 	}
+
+	if s.capture != nil {
+		ce := &CapturedEvent{
+			SinkType: logTypeMetrics,
+			Type:     "Counter",
+			Event:    c,
+		}
+		s.capture.Capture(ce)
+	}
 }
 
 func (s *standardSink) handleGauge(m Metric) {
@@ -105,11 +136,29 @@ func (s *standardSink) handleGauge(m Metric) {
 	if s.sendMetricsToAppInsights {
 		s.logMetric(m)
 	}
+
+	if s.capture != nil {
+		ce := &CapturedEvent{
+			SinkType: logTypeMetrics,
+			Type:     "Gauge",
+			Event:    g,
+		}
+		s.capture.Capture(ce)
+	}
 }
 
 func (s *standardSink) handleHistogram(m Metric) {
 	h := s.m.getHistogram(m)
 	h.Observe(m.Value)
+
+	if s.capture != nil {
+		ce := &CapturedEvent{
+			SinkType: logTypeMetrics,
+			Type:     "Histogram",
+			Event:    h,
+		}
+		s.capture.Capture(ce)
+	}
 }
 
 func (s *standardSink) logMetric(m Metric) {

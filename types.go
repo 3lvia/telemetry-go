@@ -41,3 +41,21 @@ type Event struct {
 	Name string
 	Data map[string]string
 }
+
+// EventCapture is able to capture events. This is mostly useful in testing scenarios when
+// one wishes to verify that the expected events are logged.
+type EventCapture interface {
+	Capture(*CapturedEvent)
+}
+
+// CapturedEvent
+type CapturedEvent struct {
+	// SinkType either AppInsights or Metric.
+	SinkType string
+
+	// Type
+	Type string
+
+	// Event is the actual event that would have been sent.
+	Event interface{}
+}

@@ -12,6 +12,7 @@ type OptionsCollector struct {
 	appInsightsSecretPath    string
 	sendMetricsToAppInsights bool
 	empty                    bool
+	capture                  EventCapture
 	writer                   io.Writer
 }
 
@@ -56,5 +57,11 @@ func MuteApplicationInsights() Option {
 func Empty() Option {
 	return func(collector *OptionsCollector) {
 		collector.empty = true
+	}
+}
+
+func WithCapture(c EventCapture) Option {
+	return func(collector *OptionsCollector) {
+		collector.capture = c
 	}
 }
