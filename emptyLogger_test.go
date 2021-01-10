@@ -23,7 +23,7 @@ ERROR: unexpected error
 	// Act
 	logChannels := StartEmpty(WithWriter(buf))
 
-	go func(lc LogChans) {
+	go func(lc LogChannels) {
 		lc.CountChan <- Metric{
 			Name:  "test",
 			Value: 3.14,
@@ -63,7 +63,7 @@ func TestStartEmpty_noOptions(t *testing.T) {
 	// Act
 	logChannels := StartEmpty()
 
-	go func(lc LogChans) {
+	go func(lc LogChannels) {
 		lc.CountChan <- Metric{
 			Name:  "test",
 			Value: 3.14,

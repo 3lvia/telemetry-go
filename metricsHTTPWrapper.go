@@ -22,7 +22,7 @@ type RequestHandler interface {
 
 // Wrap the handler so that it can be presented as http.Handler. The wrapper will automatically set the correct
 // Prometheus metrics for each handled request.
-func Wrap(h RequestHandler, logChannels LogChans) http.Handler {
+func Wrap(h RequestHandler, logChannels LogChannels) http.Handler {
 	return &wrapper{
 		handler:     h,
 		logChannels: logChannels,
@@ -31,7 +31,7 @@ func Wrap(h RequestHandler, logChannels LogChans) http.Handler {
 
 type wrapper struct {
 	handler     RequestHandler
-	logChannels LogChans
+	logChannels LogChannels
 }
 
 func (w *wrapper) ServeHTTP(rw http.ResponseWriter, req *http.Request) {

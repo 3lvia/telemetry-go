@@ -13,7 +13,7 @@ import (
 
 // Start starts the logger in a go routine and returns a set of channels
 // that can be used to send telemetry to the logger.
-func Start(ctx context.Context, v vault.SecretsManager, opts ...Option) LogChans {
+func Start(ctx context.Context, v vault.SecretsManager, opts ...Option) LogChannels {
 	collector := &OptionsCollector{
 		sendMetricsToAppInsights: true,
 	}
@@ -215,7 +215,7 @@ func (l *logger) ReceiveAtStartup(secret vault.UpdatedSecret) {
 
 func (l *logger) StartSecretsListener(){}
 
-func (l *logger) getLogChannels() LogChans {
+func (l *logger) getLogChannels() LogChannels {
 	gaugeChan := make(chan Metric)
 	histogramChan := make(chan Metric)
 	errorChan := make(chan error)
@@ -228,7 +228,7 @@ func (l *logger) getLogChannels() LogChans {
 	l.debugChan = debugChan
 	l.counterChan = counterChan
 	l.histogramChan = histogramChan
-	return LogChans{
+	return LogChannels{
 		GaugeChan:     gaugeChan,
 		ErrorChan:     errorChan,
 		EventChan:     eventChan,

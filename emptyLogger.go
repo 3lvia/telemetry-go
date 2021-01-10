@@ -8,8 +8,8 @@ import (
 // StartEmpty starts a logger that doesn't log anything, but that will not
 // block when log events are sent on the logging channels, the purpose being
 // to provide support for testing scenarios when logging is not in focus.
-func StartEmpty(opts ...Option) LogChans {
-	logChannels := LogChans{
+func StartEmpty(opts ...Option) LogChannels {
+	logChannels := LogChannels{
 		CountChan:     make(chan Metric),
 		GaugeChan:     make(chan Metric),
 		ErrorChan:     make(chan error),
@@ -34,8 +34,8 @@ func StartEmpty(opts ...Option) LogChans {
 }
 
 type emptyLogger struct {
-	writer io.Writer
-	logChannels LogChans
+	writer      io.Writer
+	logChannels LogChannels
 }
 
 func (l *emptyLogger) start() {

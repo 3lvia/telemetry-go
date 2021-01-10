@@ -2,9 +2,9 @@ package telemetry
 
 import "strings"
 
-// LogChans a set of channels used for communicating events, metrics, errors and
+// LogChannels a set of channels used for communicating events, metrics, errors and
 // other telemetry types to the logger.
-type LogChans struct {
+type LogChannels struct {
 	// CountChan increases the named Prometheus counter.
 	CountChan chan Metric
 
