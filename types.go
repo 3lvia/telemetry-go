@@ -41,19 +41,3 @@ type Event struct {
 	Name string
 	Data map[string]string
 }
-
-// Options is used to configure the functionality of this entire module.
-type Options struct {
-	// SystemName the name of the containing system.
-	SystemName string
-
-	// AppName is the name of the running application/micro-service.
-	AppName string
-
-	// AppInsightsSecretPath the path to Application Insights instrumentation key in Vault.
-	AppInsightsSecretPath string
-
-	// SendMetricsToAppInsights indicates whether metrics should be sent to Application Insights
-	// in addition to Prometheus.
-	SendMetricsToAppInsights bool
-}

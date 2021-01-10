@@ -13,18 +13,25 @@ import (
 
 // Start starts the logger in a go routine and returns a set of channels
 // that can be used to send telemetry to the logger.
-func Start(ctx context.Context, options Options, v vault.SecretsManager) LogChans {
+func Start(ctx context.Context, v vault.SecretsManager, opts ...Option) LogChans {
+	collector := &OptionsCollector{
+		sendMetricsToAppInsights: true,
+	}
+	for _, opt := range opts {
+		opt(collector)
+	}
+
 	l := &logger{
 		logInfo: map[string]string{
-			"system": options.SystemName,
-			"app":    options.AppName,
+			"system": collector.systemName,
+			"app":    collector.appName,
 		},
-		appInsightsSecretPath:    options.AppInsightsSecretPath,
+		appInsightsSecretPath:    collector.appInsightsSecretPath,
 		mux:                      &sync.Mutex{},
 		promoGauges:              map[string]prometheus.Gauge{},
 		promoCounters:            map[string]prometheus.Counter{},
 		promoHistograms:          map[string]prometheus.Histogram{},
-		sendMetricsToAppInsights: options.SendMetricsToAppInsights,
+		sendMetricsToAppInsights: collector.sendMetricsToAppInsights,
 	}
 	vault.RegisterDynamicSecretDependency(l, v, nil)
 	lg := l.getLogChannels()
@@ -62,7 +69,6 @@ func (l *logger) start(ctx context.Context) {
 			l.error(err)
 		case e := <-l.eventChan:
 			l.logEvent(e.Name, e.Data)
-			fmt.Printf("%s %v \n", e.Name, e.Data)
 		case d := <-l.debugChan:
 			fmt.Printf("%s\n", d)
 		}

@@ -7,7 +7,11 @@ type Option func(*OptionsCollector)
 
 // OptionsCollector collects all options before they are set.
 type OptionsCollector struct {
-	writer io.Writer
+	systemName               string
+	appName                  string
+	appInsightsSecretPath    string
+	sendMetricsToAppInsights bool
+	writer                   io.Writer
 }
 
 // WithWriter lets clients set a writer which will receive logging events (in addition to the events being written
@@ -15,5 +19,33 @@ type OptionsCollector struct {
 func WithWriter(w io.Writer) Option {
 	return func(collector *OptionsCollector) {
 		collector.writer = w
+	}
+}
+
+// WithSystemName lets clients set the name of the system. This value will be included in all logs.
+func WithSystemName(systemName string) Option {
+	return func(collector *OptionsCollector) {
+		collector.systemName = systemName
+	}
+}
+
+// WithAppName lets clients set the name of the application. This value will be included in all logs.
+func WithAppName(app string) Option {
+	return func(collector *OptionsCollector) {
+		collector.appName = app
+	}
+}
+
+// WithAppInsightsSecretPath lets clients set the Vault path to the secret containing the instrumentation key needed
+// in order to write logs to application insights.
+func WithAppInsightsSecretPath(path string) Option {
+	return func(collector *OptionsCollector) {
+		collector.appInsightsSecretPath = path
+	}
+}
+
+func MuteApplicationInsights() Option {
+	return func(collector *OptionsCollector) {
+		collector.sendMetricsToAppInsights = false
 	}
 }
