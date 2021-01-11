@@ -26,8 +26,9 @@ type LogChannels struct {
 
 // Metric is a named numeric value.
 type Metric struct {
-	Name  string
-	Value float64
+	Name        string
+	Value       float64
+	ConstLabels map[string]string
 }
 
 func (m Metric) toPromoMetricName() string {
