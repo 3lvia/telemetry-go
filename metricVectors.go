@@ -39,7 +39,9 @@ func (v *metricVectors) ensureCountVector(m Metric) *prometheus.CounterVec {
 		Name:        m.toPromoMetricName(),
 	}
 	vector := prometheus.NewCounterVec(opts, labelNames(m))
+	prometheus.MustRegister(vector)
 	v.counters[key] = vector
+
 
 	return vector
 }
@@ -68,6 +70,7 @@ func (v *metricVectors) ensureGaugeVector(m Metric) *prometheus.GaugeVec {
 		Name:        m.toPromoMetricName(),
 	}
 	vector := prometheus.NewGaugeVec(opts, labelNames(m))
+	prometheus.MustRegister(vector)
 	v.gauges[key] = vector
 	return vector
 }
@@ -96,6 +99,7 @@ func (v *metricVectors) ensureHistogramVector(m Metric) *prometheus.HistogramVec
 		Name:        m.toPromoMetricName(),
 	}
 	vector := prometheus.NewHistogramVec(opts, labelNames(m))
+	prometheus.MustRegister(vector)
 	v.histograms[key] = vector
 	return vector
 }

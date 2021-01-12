@@ -2,21 +2,20 @@ package telemetry
 
 import (
 	"context"
-	"github.com/3lvia/hn-config-lib-go/vault"
 )
 
 // Start starts the logger in a go routine and returns a set of channels
 // that can be used to send telemetry to the logger.
-func Start(ctx context.Context, v vault.SecretsManager, opts ...Option) LogChannels {
+func Start(ctx context.Context, opts ...Option) LogChannels {
 	collector := &OptionsCollector{
-		sendMetricsToAppInsights: true,
+		sendMetricsToAppInsights: false,
 		empty:                    false,
 	}
 	for _, opt := range opts {
 		opt(collector)
 	}
 
-	s := newSink(collector, v)
+	s := newSink(collector)
 
 	l := &logger{
 		sink:                     s,

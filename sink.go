@@ -24,29 +24,26 @@ type sink interface {
 	handleHistogram(m Metric)
 }
 
-func newSink(collector *OptionsCollector, v vault.SecretsManager) sink {
-	logInfo := map[string]string{
-		"system": collector.systemName,
-		"app":    collector.appName,
-	}
+func newSink(collector *OptionsCollector) sink {
 
-	m := &metrics{
-		mux:             &sync.Mutex{},
-		promoGauges:     map[string]prometheus.Gauge{},
-		promoCounters:   map[string]prometheus.Counter{},
-		promoHistograms: map[string]prometheus.Histogram{},
-		logInfo:         logInfo,
+	m := &metricVectors{
+		mux:        &sync.Mutex{},
+		counters:   map[string]*prometheus.CounterVec{},
+		gauges:     map[string]*prometheus.GaugeVec{},
+		histograms: map[string]*prometheus.HistogramVec{},
+		namespace:  collector.systemName,
+		subsystem:  collector.appName,
 	}
 
 	s :=  &standardSink{
 		m:                        m,
 		sendMetricsToAppInsights: collector.sendMetricsToAppInsights,
 		appInsightsSecretPath:    collector.appInsightsSecretPath,
-		logInfo:                  logInfo,
 		writer:                   collector.writer,
+		capture:                  collector.capture,
 	}
 	if !collector.empty && collector.appInsightsSecretPath != "" {
-		vault.RegisterDynamicSecretDependency(s, v, nil)
+		vault.RegisterDynamicSecretDependency(s, collector.v, nil)
 	}
 
 	return s
@@ -58,7 +55,7 @@ type standardSink struct {
 	capture                  EventCapture
 	client                   appinsights.TelemetryClient
 	logInfo                  map[string]string
-	m                        *metrics
+	m                        *metricVectors
 	writer                   io.Writer
 }
 

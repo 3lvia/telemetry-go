@@ -1,6 +1,9 @@
 package telemetry
 
-import "io"
+import (
+	"github.com/3lvia/hn-config-lib-go/vault"
+	"io"
+)
 
 // Option specifies options for configuring the logging.
 type Option func(*OptionsCollector)
@@ -12,6 +15,7 @@ type OptionsCollector struct {
 	appInsightsSecretPath    string
 	sendMetricsToAppInsights bool
 	empty                    bool
+	v                        vault.SecretsManager
 	capture                  EventCapture
 	writer                   io.Writer
 }
@@ -24,32 +28,28 @@ func WithWriter(w io.Writer) Option {
 	}
 }
 
-// WithSystemName lets clients set the name of the system. This value will be included in all logs.
-func WithSystemName(systemName string) Option {
+// Named lets clients set the name of the system and application. This value will be included in all logs.
+func Named(systemName string, app string) Option {
 	return func(collector *OptionsCollector) {
 		collector.systemName = systemName
-	}
-}
-
-// WithAppName lets clients set the name of the application. This value will be included in all logs.
-func WithAppName(app string) Option {
-	return func(collector *OptionsCollector) {
 		collector.appName = app
 	}
 }
 
 // WithAppInsightsSecretPath lets clients set the Vault path to the secret containing the instrumentation key needed
 // in order to write logs to application insights.
-func WithAppInsightsSecretPath(path string) Option {
+func WithAppInsightsSecretPath(path string, v vault.SecretsManager) Option {
 	return func(collector *OptionsCollector) {
 		collector.appInsightsSecretPath = path
+		collector.v = v
 	}
 }
 
-// MuteApplicationInsights if used, logs won't be sent to application insights.
-func MuteApplicationInsights() Option {
+// SendMetricsToAppInsights will send metrics to Application Insights (as well as registering it as a Prometheus
+// metric.
+func SendMetricsToAppInsights() Option {
 	return func(collector *OptionsCollector) {
-		collector.sendMetricsToAppInsights = false
+		collector.sendMetricsToAppInsights = true
 	}
 }
 
