@@ -49,31 +49,38 @@ func (w *wrapper) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 }
 
 func (w *wrapper) registerMetrics(r RoundTrip, latency float64) {
-	if r.HTTPResponseCode >= 500 {
-		w.logChannels.CountChan <- Metric{
-			Name:  "http_responses_500_total",
-			Value: 1,
-		}
-		w.logChannels.CountChan <- Metric{
-			Name:  fmt.Sprintf("http_responses_500_%s", r.HandlerName),
-			Value: 1,
-		}
-	}
 	w.logChannels.CountChan <- Metric{
-		Name:  "http_responses_total",
-		Value: 1,
+		Name:        fmt.Sprintf("http_%s_requests_total", r.HandlerName),
+		Value:       1,
+		ConstLabels: map[string]string{
+			"code": fmt.Sprintf("%d", r.HTTPResponseCode),
+		},
 	}
-	w.logChannels.CountChan <- Metric{
-		Name:  fmt.Sprintf("http_responses_%s", r.HandlerName),
-		Value: 1,
-	}
-
-	w.logChannels.CountChan <- Metric{
-		Name:  "http_latency_total",
-		Value: latency,
-	}
-	w.logChannels.CountChan <- Metric{
-		Name:  fmt.Sprintf("http_latency_%s", r.HandlerName),
-		Value: latency,
-	}
+	//if r.HTTPResponseCode >= 500 {
+	//	w.logChannels.CountChan <- Metric{
+	//		Name:  "http_responses_500_total",
+	//		Value: 1,
+	//	}
+	//	w.logChannels.CountChan <- Metric{
+	//		Name:  fmt.Sprintf("http_responses_500_%s", r.HandlerName),
+	//		Value: 1,
+	//	}
+	//}
+	//w.logChannels.CountChan <- Metric{
+	//	Name:  "http_responses_total",
+	//	Value: 1,
+	//}
+	//w.logChannels.CountChan <- Metric{
+	//	Name:  fmt.Sprintf("http_responses_%s", r.HandlerName),
+	//	Value: 1,
+	//}
+	//
+	//w.logChannels.CountChan <- Metric{
+	//	Name:  "http_latency_total",
+	//	Value: latency,
+	//}
+	//w.logChannels.CountChan <- Metric{
+	//	Name:  fmt.Sprintf("http_latency_%s", r.HandlerName),
+	//	Value: latency,
+	//}
 }

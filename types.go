@@ -33,6 +33,7 @@ type Metric struct {
 
 func (m Metric) toPromoMetricName() string {
 	ss := strings.ReplaceAll(m.Name, " ", "_")
+	ss = strings.ReplaceAll(ss, "-", "_")
 	return strings.ToLower(ss)
 }
 
