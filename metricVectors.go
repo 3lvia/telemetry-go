@@ -7,12 +7,13 @@ import (
 )
 
 type metricVectors struct {
-	mux        *sync.Mutex
-	counters   map[string]*prometheus.CounterVec
-	gauges     map[string]*prometheus.GaugeVec
-	histograms map[string]*prometheus.HistogramVec
-	namespace  string
-	subsystem  string
+	mux                  *sync.Mutex
+	counters             map[string]*prometheus.CounterVec
+	gauges               map[string]*prometheus.GaugeVec
+	histograms           map[string]*prometheus.HistogramVec
+	histogramBucketSpecs map[string][]float64
+	namespace            string
+	subsystem            string
 }
 
 func (v *metricVectors) getCounter(m Metric) prometheus.Counter {
@@ -93,10 +94,17 @@ func (v *metricVectors) ensureHistogramVector(m Metric) *prometheus.HistogramVec
 		return vector
 	}
 
+	var buckets []float64
+	k := m.toPromoMetricName()
+	if b, ok := v.histogramBucketSpecs[k]; ok {
+		buckets = b
+	}
+
 	opts := prometheus.HistogramOpts{
-		Namespace:   v.namespace,
-		Subsystem:   v.subsystem,
-		Name:        m.toPromoMetricName(),
+		Namespace: v.namespace,
+		Subsystem: v.subsystem,
+		Name:      m.toPromoMetricName(),
+		Buckets:   buckets,
 	}
 	vector := prometheus.NewHistogramVec(opts, labelNames(m))
 	_ = prometheus.Register(vector)

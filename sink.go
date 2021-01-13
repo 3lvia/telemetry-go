@@ -25,14 +25,21 @@ type sink interface {
 }
 
 func newSink(collector *OptionsCollector) sink {
+	hbs := map[string][]float64{}
+	if collector.histogramBucketSpecs != nil {
+		for k, v := range collector.histogramBucketSpecs {
+			hbs[promoMetricName(k)] = v
+		}
+	}
 
 	m := &metricVectors{
-		mux:        &sync.Mutex{},
-		counters:   map[string]*prometheus.CounterVec{},
-		gauges:     map[string]*prometheus.GaugeVec{},
-		histograms: map[string]*prometheus.HistogramVec{},
-		namespace:  collector.systemName,
-		subsystem:  collector.appName,
+		mux:                  &sync.Mutex{},
+		counters:             map[string]*prometheus.CounterVec{},
+		gauges:               map[string]*prometheus.GaugeVec{},
+		histograms:           map[string]*prometheus.HistogramVec{},
+		histogramBucketSpecs: hbs,
+		namespace:            collector.systemName,
+		subsystem:            collector.appName,
 	}
 
 	s :=  &standardSink{

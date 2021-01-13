@@ -15,6 +15,7 @@ type OptionsCollector struct {
 	appInsightsSecretPath    string
 	sendMetricsToAppInsights bool
 	empty                    bool
+	histogramBucketSpecs     map[string][]float64
 	v                        vault.SecretsManager
 	capture                  EventCapture
 	writer                   io.Writer
@@ -53,15 +54,28 @@ func SendMetricsToAppInsights() Option {
 	}
 }
 
-// Empty if used logs will not be sent to application insights, and also not to Prometheues.
+// Empty if used logs will not be sent to application insights, and also not to Prometheus.
 func Empty() Option {
 	return func(collector *OptionsCollector) {
 		collector.empty = true
 	}
 }
 
+// WithCapture all event of all types are sent to this instance if set. This feature is mostly intended for testing
+// purposes.
 func WithCapture(c EventCapture) Option {
 	return func(collector *OptionsCollector) {
 		collector.capture = c
+	}
+}
+
+// AddHistogramBucketSpec is used to specify which Prometheus histogram buckets to use for the histogram with the
+// given name. Each element in the slice is the upper inclusive bound of a bucket.
+func AddHistogramBucketSpec(name string, buckets[]float64) Option {
+	return func(c *OptionsCollector) {
+		if c.histogramBucketSpecs == nil {
+			c.histogramBucketSpecs = map[string][]float64{}
+		}
+		c.histogramBucketSpecs[name] = buckets
 	}
 }
