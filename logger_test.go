@@ -1,7 +1,9 @@
 package telemetry
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http/httptest"
 	"strings"
@@ -9,31 +11,78 @@ import (
 	"testing"
 )
 
-func TestStart_forMetrics(t *testing.T) {
+func TestStart_forAppInsights(t *testing.T) {
 	// Arrange
-	expectedGcp := `telemetry_app_cost{cloud="gcp"} 3.14`
-	expectedAzure := `telemetry_app_cost{cloud="azure"} 100.11`
-	expectedGauge := `telemetry_app_temp{room="bathroom"} 12.12`
-	expectedHistogram := `# HELP telemetry_app_latency 
-# TYPE telemetry_app_latency histogram
-telemetry_app_latency_bucket{handler="metrics",le="0.005"} 0
-telemetry_app_latency_bucket{handler="metrics",le="0.01"} 0
-telemetry_app_latency_bucket{handler="metrics",le="0.025"} 0
-telemetry_app_latency_bucket{handler="metrics",le="0.05"} 0
-telemetry_app_latency_bucket{handler="metrics",le="0.1"} 0
-telemetry_app_latency_bucket{handler="metrics",le="0.25"} 0
-telemetry_app_latency_bucket{handler="metrics",le="0.5"} 0
-telemetry_app_latency_bucket{handler="metrics",le="1"} 0
-telemetry_app_latency_bucket{handler="metrics",le="2.5"} 0
-telemetry_app_latency_bucket{handler="metrics",le="5"} 0
-telemetry_app_latency_bucket{handler="metrics",le="10"} 0
-telemetry_app_latency_bucket{handler="metrics",le="+Inf"} 2
-telemetry_app_latency_sum{handler="metrics"} 294.34000000000003
-telemetry_app_latency_count{handler="metrics"} 2`
+	expectedOutputs := []string{"debug", "EVENT(Start) map[handler:h]", "an error occurred"}
 
 	ctx := context.Background()
-	system := "telemetry"
-	app := "app"
+	doneChan := make(chan struct{})
+	cpt := &mockCapture{
+		ch: doneChan,
+	}
+	buf := new(bytes.Buffer)
+
+	wg := &sync.WaitGroup{}
+	wg.Add(2)
+
+	// Act
+	logChannels := Start(ctx,
+		Empty(),
+		Named("monitoring", "cost-monitor"),
+		WithCapture(cpt),
+		WithWriter(buf))
+
+	go func(dc <-chan struct{}, wg *sync.WaitGroup) {
+		for {
+			<- dc
+			wg.Done()
+		}
+	}(doneChan, wg)
+
+	logChannels.DebugChan <- "debug"
+	logChannels.EventChan <- Event{
+		Name: "Start",
+		Data: map[string]string{"handler": "h"},
+	}
+	logChannels.ErrorChan <- errors.New("an error occurred")
+
+
+	wg.Wait()
+
+	// Assert
+	output := buf.String()
+	for _, expectedOutput := range expectedOutputs {
+		if !strings.Contains(output, expectedOutput) {
+			t.Errorf("expected %s, couldn't find it", expectedOutput)
+		}
+	}
+}
+
+func TestStart_forMetrics(t *testing.T) {
+	// Arrange
+	expectedGcp := `cost{cloud="gcp"} 3.14`
+	expectedAzure := `cost{cloud="azure"} 100.11`
+	expectedGauge := `temp{room="bathroom"} 12.12`
+	expectedHistogram := `# HELP latency 
+# TYPE latency histogram
+latency_bucket{handler="metrics",le="0.005"} 0
+latency_bucket{handler="metrics",le="0.01"} 0
+latency_bucket{handler="metrics",le="0.025"} 0
+latency_bucket{handler="metrics",le="0.05"} 0
+latency_bucket{handler="metrics",le="0.1"} 0
+latency_bucket{handler="metrics",le="0.25"} 0
+latency_bucket{handler="metrics",le="0.5"} 0
+latency_bucket{handler="metrics",le="1"} 0
+latency_bucket{handler="metrics",le="2.5"} 0
+latency_bucket{handler="metrics",le="5"} 0
+latency_bucket{handler="metrics",le="10"} 0
+latency_bucket{handler="metrics",le="+Inf"} 2
+latency_sum{handler="metrics"} 294.34000000000003
+latency_count{handler="metrics"} 2`
+
+	ctx := context.Background()
+	//system := "telemetry"
+	//app := "app"
 
 	doneChan := make(chan struct{})
 	cpt := &mockCapture{
@@ -42,7 +91,6 @@ telemetry_app_latency_count{handler="metrics"} 2`
 
 	// Act
 	logChannels := Start(ctx,
-		Named(system, app),
 		WithCapture(cpt))
 
 	go func() {

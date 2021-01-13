@@ -57,9 +57,11 @@ func (w *wrapper) registerMetrics(r RoundTrip, latency float64) {
 		},
 	}
 	w.logChannels.HistogramChan <- Metric{
-		Name:        fmt.Sprintf("http_%s_latency"),
-		Value:       0,
-		ConstLabels: nil,
+		Name:        fmt.Sprintf("http_%s_latency", r.HandlerName),
+		Value:       latency,
+		ConstLabels: map[string]string{
+			"code": fmt.Sprintf("%d", r.HTTPResponseCode),
+		},
 	}
 	//if r.HTTPResponseCode >= 500 {
 	//	w.logChannels.CountChan <- Metric{

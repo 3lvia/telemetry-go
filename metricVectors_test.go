@@ -129,7 +129,5 @@ func mVectors() *metricVectors {
 		counters:  map[string]*prometheus.CounterVec{},
 		gauges:    map[string]*prometheus.GaugeVec{},
 		histograms: map[string]*prometheus.HistogramVec{},
-		namespace: "system",
-		subsystem: "app",
 	}
 }

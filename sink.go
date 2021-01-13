@@ -38,8 +38,6 @@ func newSink(collector *OptionsCollector) sink {
 		gauges:               map[string]*prometheus.GaugeVec{},
 		histograms:           map[string]*prometheus.HistogramVec{},
 		histogramBucketSpecs: hbs,
-		namespace:            collector.systemName,
-		subsystem:            collector.appName,
 	}
 
 	s :=  &standardSink{
@@ -111,7 +109,8 @@ func (s *standardSink) error(err error) {
 
 func (s *standardSink) debug(d string) {
 	if s.writer != nil {
-		s.writer.Write([]byte(d))
+		out := fmt.Sprintf("%s\n", d)
+		s.writer.Write([]byte(out))
 	}
 }
 
