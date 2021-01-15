@@ -40,14 +40,25 @@ func newSink(collector *OptionsCollector) sink {
 		histogramBucketSpecs: hbs,
 	}
 
+	logInfo := map[string]string{}
+	if collector.systemName != "" {
+		logInfo["system"] = collector.systemName
+	}
+	if collector.appName != "" {
+		logInfo["app"] = collector.appName
+	}
+
 	s :=  &standardSink{
 		m:                        m,
 		sendMetricsToAppInsights: collector.sendMetricsToAppInsights,
 		appInsightsSecretPath:    collector.appInsightsSecretPath,
 		writer:                   collector.writer,
 		capture:                  collector.capture,
+		logInfo:                  logInfo,
 	}
-	if !collector.empty && collector.appInsightsSecretPath != "" {
+	if collector.instrumentationKey != "" {
+		s.setInstrumentationKey(collector.instrumentationKey)
+	} else if !collector.empty && collector.appInsightsSecretPath != "" {
 		vault.RegisterDynamicSecretDependency(s, collector.v, nil)
 	}
 
@@ -62,12 +73,6 @@ type standardSink struct {
 	logInfo                  map[string]string
 	m                        *metricVectors
 	writer                   io.Writer
-}
-
-func (s *standardSink) GetSubscriptionSpec() vault.SecretSubscriptionSpec {
-	return vault.SecretSubscriptionSpec{
-		Paths: []string{s.appInsightsSecretPath},
-	}
 }
 
 func (s *standardSink) logEvent(name string, data map[string]string) {
@@ -182,9 +187,21 @@ func (s *standardSink) merge(data map[string]string) map[string]string {
 	return data
 }
 
+func (s *standardSink) GetSubscriptionSpec() vault.SecretSubscriptionSpec {
+	return vault.SecretSubscriptionSpec{
+		Paths: []string{s.appInsightsSecretPath},
+	}
+}
+
 func (s *standardSink) ReceiveAtStartup(secret vault.UpdatedSecret) {
 	d := secret.GetAllData()
 	instrumentationKey := d["instrumentation-key"]
+	s.setInstrumentationKey(instrumentationKey)
+}
+
+func (s *standardSink) StartSecretsListener(){}
+
+func (s *standardSink) setInstrumentationKey(instrumentationKey string) {
 	telemetryConfig := appinsights.NewTelemetryConfiguration(instrumentationKey)
 
 	// Configure how many items can be sent in one call to the data collector:
@@ -196,5 +213,3 @@ func (s *standardSink) ReceiveAtStartup(secret vault.UpdatedSecret) {
 	client := appinsights.NewTelemetryClientFromConfig(telemetryConfig)
 	s.client = client
 }
-
-func (s *standardSink) StartSecretsListener(){}

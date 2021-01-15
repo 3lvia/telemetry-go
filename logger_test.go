@@ -13,7 +13,7 @@ import (
 
 func TestStart_forAppInsights(t *testing.T) {
 	// Arrange
-	expectedOutputs := []string{"debug", "EVENT(Start) map[handler:h]", "an error occurred"}
+	expectedOutputs := []string{"debug", "EVENT(Start) map[app:cost-monitor handler:h system:monitoring]", "an error occurred"}
 
 	ctx := context.Background()
 	doneChan := make(chan struct{})

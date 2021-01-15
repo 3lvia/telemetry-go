@@ -17,6 +17,7 @@ type OptionsCollector struct {
 	empty                    bool
 	histogramBucketSpecs     map[string][]float64
 	v                        vault.SecretsManager
+	instrumentationKey       string
 	capture                  EventCapture
 	writer                   io.Writer
 }
@@ -43,6 +44,13 @@ func WithAppInsightsSecretPath(path string, v vault.SecretsManager) Option {
 	return func(collector *OptionsCollector) {
 		collector.appInsightsSecretPath = path
 		collector.v = v
+	}
+}
+
+// WithAppInsightsInstrumentationKey sets the instrumentation key for application insights directly.
+func WithAppInsightsInstrumentationKey(instrumentationKey string) Option {
+	return func(c *OptionsCollector) {
+		c.instrumentationKey = instrumentationKey
 	}
 }
 
