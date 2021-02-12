@@ -83,7 +83,7 @@ func (s *standardSink) logEvent(name string, data map[string]string) {
 		s.client.Track(event)
 	}
 	if s.writer != nil {
-		s.writer.Write([]byte(fmt.Sprintf("EVENT(%s) %v\n", name, d)))
+		s.writer.Write([]byte(fmt.Sprintf("%s  EVENT(%s) %v\n", time.Now().Format("2006-01-02 15:04:05"), name, d)))
 	}
 	if s.capture != nil {
 		ce := &CapturedEvent{
