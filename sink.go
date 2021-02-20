@@ -120,6 +120,11 @@ func (s *standardSink) debug(d string) {
 }
 
 func (s *standardSink) handleCounter(m Metric) {
+	if m.Value < 0 {
+		fmt.Printf("counter %s cannot decrease, value: %v\n", m.Name, m.Value)
+		return
+	}
+
 	c := s.m.getCounter(m)
 	c.Add(m.Value)
 
